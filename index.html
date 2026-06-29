@@ -304,11 +304,10 @@ footer a:hover{color:var(--ion-soft)}
           <div class="cell"><div class="k">Inklináció</div><div class="v" id="c-inc">—</div></div>
           <div class="cell"><div class="k">Irány (azimut)</div><div class="v" id="c-az">—</div></div>
           <div class="cell"><div class="k">Horizont fölött</div><div class="v" id="c-el">—</div></div>
-          <div class="cell wide"><div class="k">Fázis · távolság a helyszíntől</div>
-            <div class="v" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-              <span class="vis-pill vis-ecl" id="c-vis"><span class="d"></span>—</span>
-              <span id="c-rng" style="color:var(--muted)">—</span>
-            </div>
+          <div class="cell"><div class="k">Távolság</div><div class="v" id="c-rng">—</div></div>
+          <div class="cell"><div class="k">Becsült fényrend</div><div class="v" id="c-mag">—</div></div>
+          <div class="cell wide"><div class="k">Fázis</div>
+            <div class="v"><span class="vis-pill vis-ecl" id="c-vis"><span class="d"></span>—</span></div>
           </div>
         </div>
       </div>
@@ -325,7 +324,7 @@ footer a:hover{color:var(--ion-soft)}
             <div class="pn-foot">
               <div><div class="k">max. magasság</div><div class="v" id="pn-maxel">—</div></div>
               <div><div class="k">irány</div><div class="v" id="pn-dir">—</div></div>
-              <div><div class="k">időtartam</div><div class="v" id="pn-dur">—</div></div>
+              <div><div class="k">fényrend</div><div class="v" id="pn-mag">—</div></div>
             </div>
           </div>
           <div>
@@ -366,7 +365,7 @@ footer a:hover{color:var(--ion-soft)}
     <span class="st" id="status"><span class="d"></span><span id="status-text">betöltés…</span></span>
     <span id="freshness"></span>
     <span class="fsp"></span>
-    <button class="btn" id="refresh" style="padding:6px 12px;font-size:11px">⟳ Adatok frissítése</button>
+    <button class="btn" id="refresh" title="Automatikusan frissül kb. 2,5 óránként, amíg a lap aktív · kattints kézi frissítéshez" style="padding:6px 12px;font-size:11px">⟳ Adatok frissítése</button>
     <a id="src-link" href="https://celestrak.org" target="_blank" rel="noopener">CelesTrak</a>
   </footer>
 </div>
@@ -420,6 +419,24 @@ function subSolarPoint(date){
   return {lat:dec*RAD, lon:wrap180((ra-gmst)*RAD)};
 }
 function footprintKm(altKm){ return RE_KM*Math.acos(RE_KM/(RE_KM+altKm)); }
+function observerEciKm(date){
+  const lat=ST.observer.lat*DEG, lon=ST.observer.lon*DEG, r=RE_KM+0.15, cl=Math.cos(lat);
+  const xe=r*cl*Math.cos(lon), ye=r*cl*Math.sin(lon), ze=r*Math.sin(lat), g=satellite.gstime(date);
+  return {x:xe*Math.cos(g)-ye*Math.sin(g), y:xe*Math.sin(g)+ye*Math.cos(g), z:ze};
+}
+// estimated apparent visual magnitude (Lambertian-sphere phase model; stdMag = mag at 1000 km, 90deg phase)
+function estMag(stdMag,satEci,date,rangeKm){
+  if(stdMag==null||!isFinite(rangeKm)||rangeKm<=0||!satEci) return null;
+  const sun=sunEciKm(date), obs=observerEciKm(date);
+  const sx=sun.x-satEci.x, sy=sun.y-satEci.y, sz=sun.z-satEci.z;
+  const ox=obs.x-satEci.x, oy=obs.y-satEci.y, oz=obs.z-satEci.z;
+  const sd=Math.hypot(sx,sy,sz)||1, od=Math.hypot(ox,oy,oz)||1;
+  const cphi=clamp((sx*ox+sy*oy+sz*oz)/(sd*od),-1,1), phi=Math.acos(cphi);
+  const p=(Math.sin(phi)+(Math.PI-phi)*Math.cos(phi))/Math.PI, pf=Math.max(p*Math.PI,1e-4);
+  return stdMag + 5*Math.log10(rangeKm/1000) - 2.5*Math.log10(pf);
+}
+function magWord(m){ if(m<=-2)return 'vakító'; if(m<=0)return 'ragyogó'; if(m<=2)return 'fényes'; if(m<=4)return 'közepes'; if(m<=6)return 'halvány'; return 'távcsöves'; }
+function fmtMag(m){ return (m>=0?'+':'−')+Math.abs(m).toFixed(1); }
 // fixed-frame globe placement (texture-independent: features+sats share this mapping)
 function latLonToXYZ(lat,lon,r){
   const phi=(90-lat)*DEG, theta=(lon+180)*DEG, sp=Math.sin(phi);
@@ -455,15 +472,16 @@ const CT=g=>`https://celestrak.org/NORAD/elements/gp.php?GROUP=${g}&FORMAT=tle`;
 /* ====================== CATEGORY / COLOR ====================== */
 function categorize(name){
   const u=(name||'').toUpperCase();
-  if(u.includes('ISS')||u.includes('ZARYA')) return {cat:'iss',color:'#5ad2ff',rank:0,label:'Nemzetközi Űrállomás'};
+  if(u.includes('ISS')||u.includes('ZARYA')) return {cat:'iss',color:'#5ad2ff',rank:0,label:'Nemzetközi Űrállomás',std:-1.8};
   if(u.includes('TIANHE')||u.includes('CSS')||u.includes('TIANGONG')||u.includes('WENTIAN')||u.includes('MENGTIAN'))
-    return {cat:'css',color:'#b693ff',rank:1,label:'Kínai űrállomás'};
+    return {cat:'css',color:'#b693ff',rank:1,label:'Kínai űrállomás',std:-1.0};
   if(u.includes('DRAGON')||u.includes('CREW')||u.includes('ENDEAVOUR')||u.includes('RESILIENCE')||u.includes('FREEDOM')||u.includes('ENDURANCE'))
-    return {cat:'dragon',color:'#ff9a62',rank:2,label:'SpaceX Dragon'};
+    return {cat:'dragon',color:'#ff9a62',rank:2,label:'SpaceX Dragon',std:2.2};
   if(u.includes('SOYUZ')||u.includes('PROGRESS')||u.includes('TIANZHOU')||u.includes('CYGNUS')||u.includes('SHENZHOU'))
-    return {cat:'craft',color:'#57e3c9',rank:3,label:'Teher-/személyszállító'};
-  if(u.includes('STARLINK')) return {cat:'starlink',color:'#3a4660',rank:9,label:'Starlink műhold'};
-  return {cat:'bright',color:'#9fb2d8',rank:6,label:'Fényes műhold'};
+    return {cat:'craft',color:'#57e3c9',rank:3,label:'Teher-/személyszállító',std:2.5};
+  if(u.includes('STARLINK')) return {cat:'starlink',color:'#3a4660',rank:9,label:'Starlink műhold',std:5.5};
+  if(u.includes('HST')||u.includes('HUBBLE')) return {cat:'bright',color:'#9fb2d8',rank:5,label:'Hubble űrtávcső',std:1.5};
+  return {cat:'bright',color:'#9fb2d8',rank:6,label:'Fényes műhold',std:2.8};
 }
 
 /* ====================== TLE PARSE ====================== */
@@ -593,7 +611,7 @@ function buildObjects(list, src){
     if(!satrec || satrec.error) continue;
     const c=categorize(t.name);
     const o={ id, name:String(t.name).replace(/^0 /,'').trim(), satrec, cat:c.cat, color:c.color,
-      rank:c.rank, label:c.label,
+      rank:c.rank, label:c.label, stdMag:c.std,
       periodMin: satrec.no? (2*Math.PI/satrec.no) : 0,
       inclDeg: satrec.inclo? satrec.inclo*RAD : 0,
       epoch: new Date((satrec.jdsatepoch-2440587.5)*86400000),
@@ -970,6 +988,10 @@ function updateTelemetry(){
   const vis=$('c-vis'); if(o.lit){ vis.className='vis-pill vis-lit'; vis.innerHTML='<span class="d"></span>napfényben'; }
   else { vis.className='vis-pill vis-ecl'; vis.innerHTML='<span class="d"></span>Föld árnyékában'; }
   $('c-rng').textContent=known&&o.range>0?Math.round(o.range)+' km':'—';
+  const cm=$('c-mag');
+  if(o.lit && o.el>0 && o.eci){ const m=estMag(o.stdMag,o.eci,new Date(),o.range);
+    cm.innerHTML = m!=null ? fmtMag(m)+' <small>'+magWord(m)+'</small>' : '<small>—</small>'; }
+  else cm.innerHTML = o.lit ? '<small>horizont alatt</small>' : '<small>árnyékban</small>';
 }
 function drawnIds(){ const s=new Set(ST.tracked); if(ST.selId)s.add(ST.selId); return s; }
 function ensureTrackVisual(id){
@@ -1040,19 +1062,20 @@ function projectLabels(){
 }
 
 /* ====================== PASS PREDICTION ====================== */
-function predictPasses(satrec,obsGd,hours){
-  const STEP=30000, end=Date.now()+hours*3600000; const passes=[]; let cur=null, prevEl=null, prevT=0;
+function predictPasses(o,obsGd,hours){
+  const satrec=o.satrec, STEP=30000, end=Date.now()+hours*3600000; const passes=[]; let cur=null, prevEl=null, prevT=0;
   for(let t=Date.now(); t<=end; t+=STEP){ const d=new Date(t); let pv; try{pv=satellite.propagate(satrec,d);}catch(_){continue;} if(!pv||!pv.position)continue;
     const g=satellite.gstime(d); const la=satellite.ecfToLookAngles(obsGd,satellite.eciToEcf(pv.position,g));
     const el=la.elevation*RAD, az=(la.azimuth*RAD+360)%360;
     if(el>=0){
-      if(!cur){ const f=(prevEl!=null&&prevEl<0)?prevEl/(prevEl-el):0; cur={start:prevT+(t-prevT)*f,startAz:az,peakEl:el,peakAz:az,peakT:t,end:t,endAz:az,vis:false,low:false}; }
+      if(!cur){ const f=(prevEl!=null&&prevEl<0)?prevEl/(prevEl-el):0; cur={start:prevT+(t-prevT)*f,startAz:az,peakEl:el,peakAz:az,peakT:t,end:t,endAz:az,vis:false,low:false,bestMag:null}; }
       if(el>cur.peakEl){cur.peakEl=el;cur.peakAz=az;cur.peakT=t;}
       cur.end=t; cur.endAz=az;
       const lit=isSunlit(pv.position,d); const se=sunElevDeg(obsGd,d);
+      if(lit && el>=5){ const m=estMag(o.stdMag,pv.position,d,la.rangeSat); if(m!=null && (cur.bestMag==null||m<cur.bestMag)) cur.bestMag=m; }
       if(lit&&se<-6){ if(el>=10){ cur.vis=true; if(!cur.visPeakEl||el>cur.visPeakEl){cur.visPeakEl=el;cur.visSun=se;} }
         else if(el>=3){ cur.low=true; } }
-    } else if(cur){ if(cur.peakEl>=10)passes.push(cur); cur=null; }
+    } else if(cur){ if(cur.peakEl>=10){ cur.naked = cur.vis && (cur.bestMag==null||cur.bestMag<=6.0); passes.push(cur); } cur=null; }
     prevEl=el; prevT=t;
   }
   return passes;
@@ -1062,38 +1085,39 @@ function samplePass(satrec,obsGd,s,e){ const out=[], n=80; for(let i=0;i<=n;i++)
   const az=(la.azimuth*RAD+360)%360; const lit=isSunlit(pv.position,d); const se=sunElevDeg(obsGd,d); out.push({el,az,vis:(lit&&se<-6&&el>=8)}); } return out; }
 function recomputePasses(){
   const o=ST.objects.get(ST.selId); if(!o){ return; }
-  let passes=[]; try{ passes=predictPasses(o.satrec,ST.observerGd,48); }catch(e){ console.warn(e); }
-  ST._passes=passes; const chart=passes.find(p=>p.vis)||passes.find(p=>p.low)||passes[0]||null;
+  let passes=[]; try{ passes=predictPasses(o,ST.observerGd,48); }catch(e){ console.warn(e); }
+  ST._passes=passes; const chart=passes.find(p=>p.naked)||passes.find(p=>p.vis)||passes.find(p=>p.low)||passes[0]||null;
   renderPassNow(o,chart); renderPassList(o,passes);
 }
 function renderPassNow(o,p){
   const pn=$('passnow'),st=$('pn-state'),stt=$('pn-state-t'),cnt=$('pn-count');
   if(!p){ pn.className='passnow'; st.className='pn-state none'; stt.textContent='nincs átvonulás 48 órán belül'; cnt.textContent='—'; cnt.style.color='var(--muted-2)';
-    $('skychart').innerHTML=skyChartBase(); $('pn-maxel').textContent='—'; $('pn-dir').textContent='—'; $('pn-dur').textContent='—'; ST._chartPass=null; return; }
+    $('skychart').innerHTML=skyChartBase(); $('pn-maxel').textContent='—'; $('pn-dir').textContent='—'; $('pn-mag').textContent='—'; ST._chartPass=null; return; }
   ST._chartPass=p; const samples=samplePass(o.satrec,ST.observerGd,p.start,p.end);
-  const dur=Math.round((p.end-p.start)/1000);
   $('pn-maxel').textContent=p.peakEl.toFixed(0)+'°'; $('pn-dir').textContent=compass(p.startAz)+'→'+compass(p.endAz);
-  $('pn-dur').textContent=Math.floor(dur/60)+':'+pad2(dur%60);
+  $('pn-mag').textContent=p.bestMag!=null?fmtMag(p.bestMag):'—';
   $('skychart').innerHTML=buildSkyChart(samples,p);
-  if(p.vis){ pn.className='passnow go'; st.className='pn-state go'; stt.textContent='LÁTHATÓ SZABAD SZEMMEL'; cnt.style.color='var(--signal)'; }
-  else if(p.low){ pn.className='passnow'; st.className='pn-state wait'; stt.textContent='alacsony, halvány átvonulás'; cnt.style.color='var(--ion-soft)'; }
+  if(p.naked){ pn.className='passnow go'; st.className='pn-state go'; stt.textContent='LÁTHATÓ SZABAD SZEMMEL'; cnt.style.color='var(--signal)'; }
+  else if(p.vis||p.low){ pn.className='passnow'; st.className='pn-state wait'; stt.textContent= p.vis?'halvány — alig látható szabad szemmel':'alacsony, halvány átvonulás'; cnt.style.color='var(--ion-soft)'; }
   else { pn.className='passnow'; st.className='pn-state wait'; stt.textContent='átvonulás — nappal/árnyékban, nem látszik'; cnt.style.color='var(--ion-soft)'; }
   updateCountdown();
 }
 function updateCountdown(){
   const p=ST._chartPass; if(!p)return; const cnt=$('pn-count'),pn=$('passnow'); const now=Date.now();
   if(now<p.start){ cnt.textContent='T−'+fmtHMS((p.start-now)/1000); pn.classList.remove('live'); }
-  else if(now<=p.end){ cnt.textContent='MOST ÉSZLELHETŐ'; if(p.vis)pn.classList.add('live'); }
+  else if(now<=p.end){ cnt.textContent='MOST ÉSZLELHETŐ'; if(p.naked)pn.classList.add('live'); }
   else { pn.classList.remove('live'); if(ST.selId)recomputePasses(); }
 }
 function renderPassList(o,passes){
   const box=$('passlist'); if(!box)return;
   if(!passes.length){ box.innerHTML='<div class="empty-note">Nincs 10° fölötti átvonulás a következő 48 órában ezen a helyszínen.</div>'; return; }
   let html='';
-  for(const p of passes.slice(0,6)){ const d=new Date(p.start); const cls=p.vis?'vis':(p.low?'low':'');
-    const tag=p.vis?'<span class="vtag">látható</span>':(p.low?'<span class="vtag" style="color:var(--amber)">halvány</span>':'');
+  for(const p of passes.slice(0,6)){ const d=new Date(p.start);
+    const naked=p.naked, faint=(p.vis||p.low)&&!naked; const cls=naked?'vis':(faint?'low':'');
+    const tag=naked?'<span class="vtag">látható</span>':(faint?'<span class="vtag" style="color:var(--amber)">halvány</span>':'');
+    const magtxt=p.bestMag!=null?(fmtMag(p.bestMag)+' mag · '):'';
     html+=`<div class="prow ${cls}" data-t="${p.start}"><div class="pd">${fmtLocalDay(d)} ${fmtLocalTime(d)} ${tag}</div>
-      <div class="pmeta">${compass(p.startAz)}→${compass(p.endAz)}<br>${Math.round((p.end-p.start)/60000)} p</div>
+      <div class="pmeta">${compass(p.startAz)}→${compass(p.endAz)}<br>${magtxt}${Math.round((p.end-p.start)/60000)} p</div>
       <div class="pel">${p.peakEl.toFixed(0)}°</div></div>`; }
   box.innerHTML=html;
   box.querySelectorAll('.prow').forEach(r=>r.addEventListener('click',()=>{ const t=+r.dataset.t; const pp=(ST._passes||[]).find(x=>x.start===t); if(pp)renderPassNow(ST.objects.get(ST.selId),pp); }));
@@ -1124,7 +1148,7 @@ function buildSkyChart(samples,p){ let s=skyChartBase(); if(!samples||!samples.l
   s+=`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="3.4" fill="#0b1325" stroke="#9fb2d8" stroke-width="1.5"/>`;
   s+=`<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="3" fill="#0b1325" stroke="#67738f" stroke-width="1.3"/>`;
   let pk=samples[0]; samples.forEach(pt=>{if(pt.el>pk.el)pk=pt;}); const [px,py]=polarXY(pk.az,pk.el);
-  s+=`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="${p&&p.vis?'#7bffb0':'#5ad2ff'}"/>`;
+  s+=`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="${p&&p.naked?'#7bffb0':'#5ad2ff'}"/>`;
   return s;
 }
 
@@ -1178,7 +1202,7 @@ async function geocodeCity(q){
 async function loadStarlink(){ setStatus('warn','Starlink raj letöltése (sok adat)…');
   try{ const txt=await fetchText(CT('starlink'),22000); const arr=parseTLE(txt); let added=0;
     for(const t of arr){ const id=noradOf(t.l1); if(!id||ST.objects.has(id))continue; let sr; try{sr=satellite.twoline2satrec(t.l1,t.l2);}catch(_){continue;} if(!sr||sr.error)continue;
-      ST.objects.set(id,{id,name:String(t.name).trim(),satrec:sr,cat:'starlink',color:'#7f93c0',rank:9,label:'Starlink műhold',
+      ST.objects.set(id,{id,name:String(t.name).trim(),satrec:sr,cat:'starlink',color:'#7f93c0',rank:9,label:'Starlink műhold',stdMag:5.5,
         periodMin:sr.no?2*Math.PI/sr.no:95,inclDeg:sr.inclo?sr.inclo*RAD:0,epoch:new Date((sr.jdsatepoch-2440587.5)*86400000),
         lat:0,lon:0,alt:0,velKm:0,eci:null,el:-90,az:0,range:0,lit:false,ok:true}); ST.order.push(id); added++; }
     ST.starlinkLoaded=true; buildStarlinkPoints(); build2DStarlink();
@@ -1216,24 +1240,37 @@ function bindUI(){ if(uiBound)return; uiBound=true;
       pos=>{ setObserver(pos.coords.latitude,pos.coords.longitude,'Saját helyzet'); $('loc-gps').textContent='⌖ Saját helyzetem (GPS)'; },
       err=>{ $('loc-gps').textContent='⌖ Saját helyzetem (GPS)'; setStatus('warn','Helymeghatározás megtagadva — add meg kézzel a koordinátát.'); },
       {enableHighAccuracy:false,timeout:9000,maximumAge:600000}); };
-  $('refresh').onclick=doRefresh;
+  $('refresh').onclick=()=>doRefresh(false);
   $('fatal-retry').onclick=()=>boot();
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) autoRefreshCheck(); });
   window.addEventListener('resize',()=>{ resize3D(); if(ST.view==='2d'&&M2.ready)M2.map.invalidateSize(); });
 }
-async function doRefresh(){ if(ST.refreshLock)return; ST.refreshLock=true; const btn=$('refresh'); btn.disabled=true; const sel=ST.selId;
-  setStatus('warn','Adatok frissítése…');
+async function doRefresh(auto){ if(ST.refreshLock)return; ST.refreshLock=true; const btn=$('refresh'); if(btn)btn.disabled=true; const sel=ST.selId;
+  setStatus('warn', auto?'Automatikus frissítés…':'Adatok frissítése…');
   try{ await loadAllData(); if(ST.starlinkLoaded){ ST.starlinkLoaded=false; if(ST.layers.starlink)await loadStarlink(); }
-    buildGlobeSatellites(); build2DSatellites(); const keep=(sel&&ST.objects.has(sel))?sel:(findIssId()||ST.order[0]); if(keep)selectObject(keep);
+    buildGlobeSatellites(); build2DSatellites();
+    for(const id of [...ST.tracked]) if(!ST.objects.has(id)) ST.tracked.delete(id);
+    if(G.orbits) for(const id of [...G.orbits.keys()]) removeTrackVisual(id);
+    if(M2.tracks) for(const id of [...M2.tracks.keys()]) removeTrackVisual(id);
+    const keep=(sel&&ST.objects.has(sel))?sel:(findIssId()||ST.order[0]); if(keep)selectObject(keep); else updateTrackedVisuals();
     setStatus('ok','Forrás: '+ST.src+' · '+ST.objects.size+' objektum'); setFreshness();
-  }catch(e){ setStatus('err','Frissítés sikertelen — ellenőrizd a hálózatot.'); }
-  setTimeout(()=>{ ST.refreshLock=false; btn.disabled=false; },45000);
+  }catch(e){ setStatus('err', auto?'Auto-frissítés most nem sikerült (a meglévő adat marad)':'Frissítés sikertelen — ellenőrizd a hálózatot.'); }
+  setTimeout(()=>{ ST.refreshLock=false; if(btn)btn.disabled=false; }, auto?6000:30000);
+}
+const AUTO_REFRESH_MS=150*60*1000; // ~2.5 óra
+function autoRefreshCheck(){
+  if(ST.refreshLock) return;
+  if(typeof document!=='undefined' && document.hidden) return; // csak ha a lap aktív
+  if(!ST.lastFetch) return;
+  if(Date.now()-ST.lastFetch > AUTO_REFRESH_MS) doRefresh(true);
 }
 
 /* ====================== CLOCK ====================== */
 function startClock(){ if(clockHandle)return; const t=()=>{ const d=new Date();
   $('clock-utc').textContent=d.toISOString().slice(11,19)+' UTC'; $('clock-loc').textContent='helyi '+fmtLocalTime(d);
   setFreshness(); updateCountdown(); passAge++; if(passAge>=180&&ST.selId){ passAge=0; recomputePasses(); } };
-  t(); clockHandle=setInterval(t,1000); }
+  t(); clockHandle=setInterval(t,1000);
+  if(!ST._autoTimer) ST._autoTimer=setInterval(autoRefreshCheck,60000); }
 
 /* ====================== FATAL ====================== */
 function showFatal(e){ const f=$('fatal'); $('boot').style.display='none'; f.style.display='flex';
