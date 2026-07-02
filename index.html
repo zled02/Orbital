@@ -221,6 +221,29 @@ footer a:hover{color:var(--ion-soft)}
 #tracked-bar:empty{display:none}
 .lnk{appearance:none;border:0;background:transparent;color:var(--ion-deep);font-family:var(--f-mono);font-size:10.5px;cursor:pointer;padding:0;text-decoration:underline}
 .lnk:hover{color:var(--ion-soft)}
+#side-tabs{display:none}
+.leaflet-tooltip{background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:6px;
+  font-family:var(--f-mono);font-size:10.5px;padding:3px 7px;box-shadow:0 4px 14px -6px #000}
+.leaflet-tooltip-top:before{border-top-color:var(--line-2)}
+.add-row{display:flex;gap:7px;margin-bottom:10px;align-items:stretch}
+.add-row textarea{flex:1;resize:none;background:var(--panel);border:1px solid var(--line-2);border-radius:8px;
+  padding:8px 9px;color:var(--text);font-family:var(--f-mono);font-size:11px;line-height:1.35;outline:none;min-height:34px;max-height:64px}
+.add-row textarea:focus{border-color:var(--ion-deep)}
+.pin.rm{display:inline-flex;align-items:center;justify-content:center;font-size:9px;line-height:1;color:var(--plasma);border-color:var(--line-3)}
+.pin.rm:hover{border-color:var(--plasma)}
+@media (max-width:880px){
+  #side-tabs{display:flex;position:sticky;top:0;z-index:7;background:linear-gradient(180deg,var(--abyss),rgba(8,13,25,.97));border-bottom:1px solid var(--line)}
+  #side-tabs button{flex:1;appearance:none;border:0;background:transparent;color:var(--muted-2);font-family:var(--f-mono);
+    font-size:10.5px;letter-spacing:.08em;padding:12px 4px;cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase}
+  #side-tabs button.active{color:var(--ion-soft);border-bottom-color:var(--ion-deep)}
+  #side[data-tab="obj"] .panel:not(.p-obj){display:none}
+  #side[data-tab="sel"] .panel:not(.p-sel){display:none}
+  #side[data-tab="cfg"] .panel:not(.p-cfg){display:none}
+  .olist{max-height:none}
+  .orow{padding:11px 10px}
+  .pin{width:18px;height:18px}
+  .chip{padding:8px 13px}
+}
 </style>
 </head>
 <body>
@@ -265,20 +288,33 @@ footer a:hover{color:var(--ion-soft)}
         <span class="lg"><span class="dot" style="background:var(--teal);color:var(--teal)"></span>egyéb űrhajó</span>
         <span class="lg"><span class="dot" style="background:#9fb2d8;color:#9fb2d8"></span>fényes műhold</span>
         <span class="lg"><span class="dot" style="background:var(--faint);color:var(--faint)"></span>Starlink</span>
+        <span class="lg"><span class="dot" style="background:#ffd166;color:#ffd166"></span>GNSS</span>
+        <span class="lg"><span class="dot" style="background:#ff8ad8;color:#ff8ad8"></span>geostacionárius</span>
+        <span class="lg"><span class="dot" style="background:#59c96f;color:#59c96f"></span>időjárási</span>
+        <span class="lg"><span class="dot" style="background:#ffffff;color:#ffffff"></span>egyéni</span>
         <span class="lg"><span style="color:var(--amber)">☼</span>napfényben</span>
         <span class="lg"><span style="color:var(--muted-2)">◐</span>árnyékban</span>
       </div>
       <div id="mview"><button class="btn" id="mview-btn">2D ↦</button></div>
     </section>
 
-    <aside id="side">
-      <div class="panel">
+    <aside id="side" data-tab="obj">
+      <nav id="side-tabs">
+        <button data-tab="obj" class="active">Objektumok</button>
+        <button data-tab="sel">Követés</button>
+        <button data-tab="cfg">Beállítás</button>
+      </nav>
+      <div class="panel p-obj">
         <div class="panel-h"><span class="eyebrow">Objektumok</span><span class="count" id="obj-count">—</span></div>
         <div class="filterbar">
           <label class="search">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
             <input id="search" type="text" placeholder="keresés (pl. ISS, Dragon, Starlink)…" autocomplete="off">
           </label>
+        </div>
+        <div class="add-row">
+          <textarea id="add-tle" rows="1" placeholder="＋ NORAD ID vagy TLE beillesztése…" spellcheck="false"></textarea>
+          <button class="btn" id="add-btn">Követés</button>
         </div>
         <div class="toggle" id="t-visnow" style="margin-bottom:11px">
           <span class="switch"></span><span class="lbl">csak ami most a helyszín fölött van</span>
@@ -287,7 +323,7 @@ footer a:hover{color:var(--ion-soft)}
         <div id="tracked-bar"></div>
       </div>
 
-      <div class="panel" id="sel-panel">
+      <div class="panel p-sel" id="sel-panel">
         <div class="sel-head">
           <span class="od" id="sel-dot" style="background:var(--ion);color:var(--ion)"></span>
           <div style="min-width:0">
@@ -312,7 +348,7 @@ footer a:hover{color:var(--ion-soft)}
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel p-sel">
         <div class="panel-h"><span class="eyebrow">Következő látható átvonulás</span></div>
         <div class="pass-wrap">
           <div class="passnow" id="passnow">
@@ -334,7 +370,7 @@ footer a:hover{color:var(--ion-soft)}
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel p-cfg">
         <div class="panel-h"><span class="eyebrow">Megfigyelési helyszín</span></div>
         <div class="loc-cur">
           <span class="pin">⌖</span>
@@ -349,11 +385,14 @@ footer a:hover{color:var(--ion-soft)}
         <div class="loc-row"><button class="btn" id="loc-gps" style="flex:1">⌖ Saját helyzetem (GPS)</button></div>
       </div>
 
-      <div class="panel">
+      <div class="panel p-cfg">
         <div class="panel-h"><span class="eyebrow">Rétegek</span></div>
         <div class="layers">
           <div class="toggle on" id="t-bright"><span class="switch"></span><span class="lbl">Fényes műholdak (~100 legfényesebb)</span></div>
           <div class="toggle" id="t-starlink"><span class="switch"></span><span class="lbl">Starlink raj (sok objektum)</span></div>
+          <div class="toggle" id="t-gnss"><span class="switch"></span><span class="lbl">Navigációs holdak (GPS · Galileo · GLONASZ · BeiDou)</span></div>
+          <div class="toggle" id="t-geo"><span class="switch"></span><span class="lbl">Geostacionárius öv (TV / távközlés)</span></div>
+          <div class="toggle" id="t-wx"><span class="switch"></span><span class="lbl">Időjárási műholdak</span></div>
           <div class="toggle on" id="t-track"><span class="switch"></span><span class="lbl">Pályák és földi nyomok (kijelöltek)</span></div>
           <div class="toggle on" id="t-term"><span class="switch"></span><span class="lbl">Nappal / éjszaka határvonal</span></div>
         </div>
@@ -365,6 +404,7 @@ footer a:hover{color:var(--ion-soft)}
     <span class="st" id="status"><span class="d"></span><span id="status-text">betöltés…</span></span>
     <span id="freshness"></span>
     <span class="fsp"></span>
+    <button class="btn" id="share" title="Az aktuális helyszín, kijelölés és követett pályák megosztható linkje" style="padding:6px 12px;font-size:11px">🔗 Link</button>
     <button class="btn" id="refresh" title="Automatikusan frissül kb. 2,5 óránként, amíg a lap aktív · kattints kézi frissítéshez" style="padding:6px 12px;font-size:11px">⟳ Adatok frissítése</button>
     <a id="src-link" href="https://celestrak.org" target="_blank" rel="noopener">CelesTrak</a>
   </footer>
@@ -447,7 +487,8 @@ function latLonToXYZ(lat,lon,r){
 const ST={
   objects:new Map(), order:[], selId:null, tracked:new Set(),
   observer:{lat:47.4979, lon:19.0402, name:'Budapest'}, observerGd:null,
-  layers:{bright:true, starlink:false, track:true, term:true, visnow:false},
+  layers:{bright:true, starlink:false, track:true, term:true, visnow:false, gnss:false, geo:false, wx:false},
+  custom:[], extraLoaded:{}, _restoreTracked:null, _restoreSel:null,
   view:'3d', search:'', src:'', srcUrl:'https://celestrak.org', lastFetch:0,
   epochAgeDays:null, no3d:false, starlinkLoaded:false, refreshLock:false
 };
@@ -468,6 +509,11 @@ const CURATED=[
   [27386,'ENVISAT'],[40069,'METEOR-M 2'],[37849,'SUOMI NPP']
 ];
 const CT=g=>`https://celestrak.org/NORAD/elements/gp.php?GROUP=${g}&FORMAT=tle`;
+const EXTRA={
+  gnss:{group:'gnss', color:'#ffd166', label:'Navigációs műhold', rank:7, std:4.5, hu:'Navigációs holdak'},
+  geo:{group:'geo', color:'#ff8ad8', label:'Geostacionárius műhold', rank:8, std:8.0, hu:'Geostacionárius öv'},
+  wx:{group:'weather', color:'#59c96f', label:'Időjárási műhold', rank:7, std:3.5, hu:'Időjárási műholdak'}
+};
 
 /* ====================== CATEGORY / COLOR ====================== */
 function categorize(name){
@@ -627,13 +673,20 @@ function computeEpochAge(){
 }
 
 /* ====================== OBJECT LIST ====================== */
+function catHidden(o){
+  if(o.cat==='bright')return !ST.layers.bright;
+  if(o.cat==='gnss')return !ST.layers.gnss;
+  if(o.cat==='geo')return !ST.layers.geo;
+  if(o.cat==='wx')return !ST.layers.wx;
+  return false;
+}
 function visibleObjects(){
   const q=ST.search.trim().toLowerCase();
   let arr=[];
   for(const id of ST.order){
     const o=ST.objects.get(id);
-    if(o.cat==='bright' && !ST.layers.bright) continue;
-    if(o.cat==='starlink' && !ST.layers.starlink) continue;
+    if(o.cat==='starlink'){ if(!ST.layers.starlink) continue; }
+    else if(catHidden(o)) continue;
     if(q && !o.name.toLowerCase().includes(q) && !o.id.includes(q)) continue;
     if(ST.layers.visnow && !(o.el>=0)) continue;
     arr.push(o);
@@ -646,7 +699,7 @@ function renderList(){
   const box=$('olist'); if(!box) return;
   const prev=box.scrollTop;
   const arr=visibleObjects();
-  const cap = ST.layers.starlink ? 80 : 400;
+  const cap = ST.layers.starlink ? 120 : 600;
   const shown=arr.slice(0,cap);
   let html='';
   for(const o of shown){
@@ -659,7 +712,7 @@ function renderList(){
       <span class="od" style="background:${o.color};color:${o.color}"></span>
       <span class="on">${escapeHtml(o.name)}</span>
       <span class="om">${meta}</span>${sun}
-      <button class="pin${pinOn?' on':''}" data-pin="${o.id}" title="pálya egyidejű követése" style="--pc:${o.color}"></button></div>`;
+      <button class="pin${pinOn?' on':''}" data-pin="${o.id}" title="pálya egyidejű követése" style="--pc:${o.color}"></button>${o.cat==='custom'?`<button class="pin rm" data-rm="${o.id}" title="egyéni objektum eltávolítása">✕</button>`:''}</div>`;
   }
   if(!shown.length) html='<div class="empty-note">Nincs találat ezekkel a szűrőkkel.'+(ST.layers.visnow?' Jelenleg egyetlen követett objektum sincs a helyszín horizontja fölött — próbáld kikapcsolni a fenti szűrőt.':'')+'</div>';
   else if(arr.length>cap) html+=`<div class="empty-note">+${arr.length-cap} további objektum (szűkíts kereséssel)…</div>`;
@@ -682,6 +735,7 @@ function selectObject(id){
   updateTrackedVisuals();
   recomputePasses();
   renderList();
+  savePrefs();
 }
 
 /* ====================== STATUS / FRESHNESS ====================== */
@@ -798,17 +852,38 @@ function init3D(){
 
 function bindControls(canvas){
   const c=G.ctrl; const pts=new Map();
-  canvas.addEventListener('pointerdown',e=>{ pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); c.drag=true; c.lastX=e.clientX; c.lastY=e.clientY; c.idle=0; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointerdown',e=>{ pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); c.drag=true; c.lastX=e.clientX; c.lastY=e.clientY; c.idle=0;
+    if(pts.size===1){ c.downX=e.clientX; c.downY=e.clientY; c.hadPinch=false; }
+    canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove',e=>{
     if(!pts.has(e.pointerId))return; pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(pts.size>=2){ const a=[...pts.values()]; const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(pts.size>=2){ c.hadPinch=true; const a=[...pts.values()]; const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
       if(c.pinch){ c.tDist=clamp(c.tDist*(c.pinch/d),1.35,8); } c.pinch=d; c.idle=0; return; }
     if(!c.drag)return; const dx=e.clientX-c.lastX, dy=e.clientY-c.lastY; c.lastX=e.clientX; c.lastY=e.clientY;
     c.tTheta-=dx*0.005; c.tPhi=clamp(c.tPhi-dy*0.005,0.16,Math.PI-0.16); c.idle=0;
   });
-  const up=e=>{ pts.delete(e.pointerId); if(pts.size<2)c.pinch=0; if(pts.size===0)c.drag=false; };
+  const up=e=>{ pts.delete(e.pointerId); if(pts.size<2)c.pinch=0;
+    if(pts.size===0){ c.drag=false;
+      if(!c.hadPinch && Math.hypot(e.clientX-(c.downX||0),e.clientY-(c.downY||0))<7) pick3D(e); } };
   canvas.addEventListener('pointerup',up); canvas.addEventListener('pointercancel',up);
   canvas.addEventListener('wheel',e=>{ e.preventDefault(); c.tDist=clamp(c.tDist*(1+e.deltaY*0.0012),1.35,8); c.idle=0; },{passive:false});
+}
+function pick3D(ev){
+  if(!G.ready)return;
+  const cv=G.renderer.domElement, rect=cv.getBoundingClientRect(); if(rect.width<2||rect.height<2)return;
+  const nx=((ev.clientX-rect.left)/rect.width)*2-1, ny=-((ev.clientY-rect.top)/rect.height)*2+1;
+  const rc=G._ray||(G._ray=new THREE.Raycaster());
+  rc.params.Points={threshold:0.05};
+  rc.setFromCamera(new THREE.Vector2(nx,ny),G.cam);
+  const objs=[]; if(G.tracked.obj)objs.push(G.tracked.obj); if(G.starlink.obj&&G.starlink.obj.visible)objs.push(G.starlink.obj);
+  if(!objs.length)return;
+  const hits=rc.intersectObjects(objs,false);
+  for(const h of hits){
+    const ids=(h.object===G.tracked.obj)?G.tracked.ids:G.starlink.ids;
+    const id=ids&&ids[h.index]; if(!id)continue;
+    const o=ST.objects.get(id); if(!o||catHidden(o))continue;
+    selectObject(id); mobileShowSel(); return;
+  }
 }
 function resize3D(){
   if(!G.renderer)return; const w=$('stage').clientWidth, h=$('stage').clientHeight;
@@ -831,7 +906,7 @@ function buildGlobeSatellites(){
 function applyTrackColors(){
   if(!G.tracked.obj)return; const col=G.tracked.obj.geometry.attributes.color; const c=new THREE.Color();
   G.tracked.ids.forEach((id,i)=>{ const o=ST.objects.get(id);
-    const hide=(o.cat==='bright' && !ST.layers.bright);
+    const hide=catHidden(o);
     if(hide){ col.array[i*3]=0; col.array[i*3+1]=0; col.array[i*3+2]=0; }
     else { c.set(o.color); col.array[i*3]=c.r; col.array[i*3+1]=c.g; col.array[i*3+2]=c.b; }
   });
@@ -926,9 +1001,10 @@ function build2DSatellites(){
     const big=(o.cat!=='bright');
     const m=L.circleMarker([o.lat,o.lon],{radius:big?4:3,color:o.color,weight:big?1.4:1,opacity:.95,
       fillColor:o.color,fillOpacity:big?.55:.35});
-    m.on('click',()=>selectObject(id));
+    m.on('click',()=>{ selectObject(id); mobileShowSel(); });
+    m.bindTooltip(escapeHtml(o.name),{direction:'top',offset:[0,-6],opacity:.95});
     m._zid=id; m.addTo(M2.satLayer); M2.markers.set(id,m);
-    if(o.cat==='bright' && !ST.layers.bright){ m.setStyle({opacity:0,fillOpacity:0}); }
+    if(catHidden(o)){ m.setStyle({opacity:0,fillOpacity:0}); }
   }
 }
 function build2DStarlink(){
@@ -1018,7 +1094,7 @@ function updateTrackedVisuals(){
   if(G.ready){ G.selSprite.visible=!!ST.selId; if(ST.selId){ const o=ST.objects.get(ST.selId); if(o)G.selSprite.material.color.set(o.color); } }
   if(M2.ready){
     for(const [mid,m] of M2.markers){ const oo=ST.objects.get(mid); const prim=mid===ST.selId; const trk=want.has(mid);
-      const hidden=(oo.cat==='bright'&&!ST.layers.bright);
+      const hidden=catHidden(oo);
       m.setStyle({radius:prim?6:(trk?5:(oo.cat!=='bright'?4:3)), weight:prim?2:(trk?1.7:(oo.cat!=='bright'?1.4:1)),
         opacity:hidden?0:.95, fillOpacity:hidden?0:((prim||trk)?.6:(oo.cat!=='bright'?.55:.35))}); }
     const sm=M2.markers.get(ST.selId); if(sm)sm.bringToFront();
@@ -1028,8 +1104,8 @@ function rebuildTracks(){ if(!ST.layers.track)return; const want=drawnIds();
   for(const id of want){ const o=ST.objects.get(id); if(!o)continue;
     if(G.orbits&&G.orbits.has(id))buildOrbitLine(o,G.orbits.get(id));
     if(M2.tracks&&M2.tracks.has(id))buildGroundTrack(o,M2.tracks.get(id)); } }
-function toggleTracked(id){ if(!ST.objects.has(id))return; if(ST.tracked.has(id))ST.tracked.delete(id); else ST.tracked.add(id); updateTrackedVisuals(); renderList(); }
-function clearTracked(){ ST.tracked.clear(); updateTrackedVisuals(); renderList(); }
+function toggleTracked(id){ if(!ST.objects.has(id))return; if(ST.tracked.has(id))ST.tracked.delete(id); else ST.tracked.add(id); updateTrackedVisuals(); renderList(); savePrefs(); }
+function clearTracked(){ ST.tracked.clear(); updateTrackedVisuals(); renderList(); savePrefs(); }
 function buildOrbitLine(o,ln){
   const P=o.periodMin||95, steps=128, arr=[], t0=Date.now();
   for(let i=0;i<=steps;i++){ const d=new Date(t0+(P*60000)*(i/steps)); let pv; try{pv=satellite.propagate(o.satrec,d);}catch(_){continue;} if(!pv||!pv.position)continue;
@@ -1171,7 +1247,7 @@ function tick(){
 
 /* ====================== LOCATION ====================== */
 function setObserver(lat,lon,name){ ST.observer={lat,lon,name:name||(lat.toFixed(2)+', '+lon.toFixed(2))}; setObserverGd();
-  updateLocLabels(); moveObserver2D(); if(ST.selId)recomputePasses(); renderList(); }
+  updateLocLabels(); moveObserver2D(); if(ST.selId)recomputePasses(); renderList(); savePrefs(); }
 function updateLocLabels(){ $('loc-name').textContent=ST.observer.name; const la=ST.observer.lat, lo=ST.observer.lon;
   $('loc-coord').textContent=Math.abs(la).toFixed(2)+'° '+(la>=0?'É':'D')+' · '+Math.abs(lo).toFixed(2)+'° '+(lo>=0?'K':'NY'); updateChips(); }
 function buildChips(){ const box=$('loc-chips'); box.innerHTML=''; HU_PLACES.forEach(p=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=p.n; b.onclick=()=>setObserver(p.la,p.lo,p.n); box.appendChild(b); }); updateChips(); }
@@ -1211,6 +1287,122 @@ async function loadStarlink(){ setStatus('warn','Starlink raj letöltése (sok a
     setStatus('warn','Starlink nem tölthető be (CORS/hálózat). A többi adat változatlan.'); }
 }
 
+/* ====================== EXTRA GROUPS (GNSS / GEO / weather) ====================== */
+async function loadExtraGroup(key){
+  const cfg=EXTRA[key]; if(!cfg)return;
+  setStatus('warn',cfg.hu+' letöltése…');
+  try{
+    const txt=await fetchText(CT(cfg.group),20000);
+    const arr=parseTLE(txt); let added=0;
+    for(const t of arr){ const id=noradOf(t.l1); if(!id||ST.objects.has(id))continue;
+      let sr; try{sr=satellite.twoline2satrec(t.l1,t.l2);}catch(_){continue;} if(!sr||sr.error)continue;
+      ST.objects.set(id,{id,name:String(t.name).trim(),satrec:sr,cat:key,color:cfg.color,rank:cfg.rank,label:cfg.label,stdMag:cfg.std,
+        periodMin:sr.no?2*Math.PI/sr.no:0,inclDeg:sr.inclo?sr.inclo*RAD:0,epoch:new Date((sr.jdsatepoch-2440587.5)*86400000),
+        lat:0,lon:0,alt:0,velKm:0,eci:null,el:-90,az:0,range:0,lit:false,ok:true});
+      ST.order.push(id); added++; }
+    ST.extraLoaded[key]=true;
+    if(ST._restoreTracked) for(const id of ST._restoreTracked) if(ST.objects.has(id))ST.tracked.add(id);
+    computeEpochAge(); buildGlobeSatellites(); build2DSatellites(); tick(); updateTrackedVisuals(); renderList();
+    setStatus('ok',cfg.hu+' betöltve · +'+added+' objektum'); setFreshness();
+  }catch(e){ console.warn(key,e); ST.layers[key]=false; const el=$('t-'+key); if(el)el.classList.remove('on');
+    setStatus('warn',cfg.hu+' most nem tölthető be (hálózat/CORS).'); }
+}
+
+/* ====================== CUSTOM OBJECTS (NORAD / TLE) ====================== */
+function addObjectFromTLE(t,persist){
+  const id=noradOf(t.l1); if(!id)return null;
+  if(ST.objects.has(id)) return id;
+  let sr; try{sr=satellite.twoline2satrec(t.l1,t.l2);}catch(_){return null;} if(!sr||sr.error)return null;
+  const name=(t.name&&String(t.name).trim())||('NORAD '+id);
+  ST.objects.set(id,{id,name,satrec:sr,cat:'custom',color:'#ffffff',rank:4,label:'Egyéni objektum',stdMag:3.5,
+    periodMin:sr.no?2*Math.PI/sr.no:0,inclDeg:sr.inclo?sr.inclo*RAD:0,epoch:new Date((sr.jdsatepoch-2440587.5)*86400000),
+    lat:0,lon:0,alt:0,velKm:0,eci:null,el:-90,az:0,range:0,lit:false,ok:true});
+  ST.order.push(id);
+  if(persist && !ST.custom.some(c=>noradOf(c.l1)===id)){ ST.custom.push({name,l1:t.l1,l2:t.l2}); savePrefs(); }
+  return id;
+}
+function applyCustomObjects(){ for(const c of ST.custom) addObjectFromTLE(c,false); }
+async function handleAdd(){
+  const box=$('add-tle'); const raw=(box.value||'').trim(); if(!raw)return;
+  const btn=$('add-btn'); btn.disabled=true;
+  try{
+    if(/^\d{1,9}$/.test(raw)){
+      setStatus('warn','Objektum lekérése (NORAD '+raw+')…');
+      const j=await fetchJSON('https://tle.ivanstanojevic.me/api/tle/'+raw,10000);
+      if(j&&j.line1&&j.line2) afterAdd(addObjectFromTLE({name:j.name,l1:j.line1.trim(),l2:j.line2.trim()},true));
+      else setStatus('warn','Nincs ilyen NORAD azonosító a katalógusban.');
+    } else {
+      const arr=parseTLE(raw);
+      if(arr.length) afterAdd(addObjectFromTLE(arr[0],true));
+      else setStatus('warn','Nem értelmezhető. Adj meg NORAD számot, vagy illessz be 2–3 soros TLE-t.');
+    }
+  }catch(e){ setStatus('warn','A lekérés nem sikerült (hálózat/CORS) — TLE beillesztése így is működik.'); }
+  btn.disabled=false;
+}
+function afterAdd(id){
+  if(!id){ setStatus('warn','Az objektum nem dolgozható fel (hibás TLE?).'); return; }
+  $('add-tle').value='';
+  computeEpochAge(); buildGlobeSatellites(); build2DSatellites(); tick();
+  selectObject(id); mobileShowSel();
+  setStatus('ok','Hozzáadva: '+ST.objects.get(id).name); setFreshness();
+}
+function removeCustom(id){
+  if(!ST.objects.has(id))return;
+  ST.custom=ST.custom.filter(c=>noradOf(c.l1)!==id);
+  ST.tracked.delete(id); removeTrackVisual(id);
+  ST.objects.delete(id); ST.order=ST.order.filter(x=>x!==id);
+  if(ST.selId===id){ ST.selId=null; const nid=findIssId()||ST.order[0]; if(nid)selectObject(nid); }
+  buildGlobeSatellites(); build2DSatellites(); updateTrackedVisuals(); renderList(); savePrefs();
+}
+
+/* ====================== PREFS / SHARE ====================== */
+const PREF_KEY='zenit-prefs-v1';
+function savePrefs(){
+  try{ localStorage.setItem(PREF_KEY,JSON.stringify({o:ST.observer,l:ST.layers,t:[...ST.tracked],s:ST.selId,c:ST.custom})); }catch(_){}
+}
+function loadPrefs(){
+  try{
+    const j=JSON.parse(localStorage.getItem(PREF_KEY)||'null'); if(!j)return;
+    if(j.o&&isFinite(j.o.lat)&&isFinite(j.o.lon))ST.observer={lat:+j.o.lat,lon:+j.o.lon,name:j.o.name||'Mentett helyszín'};
+    if(j.l)for(const k in ST.layers)if(typeof j.l[k]==='boolean')ST.layers[k]=j.l[k];
+    if(Array.isArray(j.c))ST.custom=j.c.filter(c=>c&&c.l1&&c.l2);
+    if(Array.isArray(j.t))ST._restoreTracked=j.t;
+    if(j.s)ST._restoreSel=j.s;
+  }catch(_){}
+}
+function loadURLState(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const la=parseFloat(p.get('la')), lo=parseFloat(p.get('lo'));
+    if(isFinite(la)&&isFinite(lo)) ST.observer={lat:clamp(la,-90,90),lon:clamp(wrap180(lo),-180,180),name:p.get('n')||'Megosztott helyszín'};
+    if(p.get('sel'))ST._restoreSel=p.get('sel');
+    const trk=p.get('trk'); if(trk)ST._restoreTracked=trk.split(',').filter(Boolean);
+  }catch(_){}
+}
+function buildShareURL(){
+  const p=new URLSearchParams();
+  p.set('la',ST.observer.lat.toFixed(4)); p.set('lo',ST.observer.lon.toFixed(4));
+  if(ST.observer.name)p.set('n',ST.observer.name);
+  if(ST.selId)p.set('sel',ST.selId);
+  if(ST.tracked.size)p.set('trk',[...ST.tracked].join(','));
+  return location.href.split(/[?#]/)[0]+'?'+p.toString();
+}
+async function shareLink(){
+  const url=buildShareURL();
+  try{ await navigator.clipboard.writeText(url); setStatus('ok','Megosztható link a vágólapra másolva.'); }
+  catch(_){ window.prompt('Másold ki a linket:',url); }
+}
+function applyLayerUI(){
+  const map={bright:'t-bright',starlink:'t-starlink',track:'t-track',term:'t-term',visnow:'t-visnow',gnss:'t-gnss',geo:'t-geo',wx:'t-wx'};
+  for(const k in map){ const el=$(map[k]); if(el)el.classList.toggle('on',!!ST.layers[k]); }
+}
+function switchSideTab(t){
+  const s=$('side'); if(!s)return; s.dataset.tab=t;
+  document.querySelectorAll('#side-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+  if(s.scrollTo)s.scrollTo(0,0);
+}
+function mobileShowSel(){ if(window.matchMedia&&window.matchMedia('(max-width:880px)').matches) switchSideTab('sel'); }
+
 /* ====================== VIEW + UI ====================== */
 function setView(v){ ST.view=v; $('stage').dataset.view=v;
   $('v3d').classList.toggle('active',v==='3d'); $('v2d').classList.toggle('active',v==='2d');
@@ -1225,14 +1417,25 @@ function bindUI(){ if(uiBound)return; uiBound=true;
   $('v2d').onclick=()=>setView('2d');
   $('mview-btn').onclick=()=>setView(ST.view==='3d'?'2d':'3d');
   $('search').addEventListener('input',e=>{ ST.search=e.target.value; renderList(); });
-  $('olist').addEventListener('click',e=>{ const pin=e.target.closest('[data-pin]'); if(pin){ e.stopPropagation(); toggleTracked(pin.dataset.pin); return; } const r=e.target.closest('.orow'); if(r&&r.dataset.id)selectObject(r.dataset.id); });
-  $('t-visnow').addEventListener('click',()=>{ ST.layers.visnow=!ST.layers.visnow; $('t-visnow').classList.toggle('on',ST.layers.visnow); renderList(); });
-  $('t-bright').addEventListener('click',()=>{ ST.layers.bright=!ST.layers.bright; $('t-bright').classList.toggle('on',ST.layers.bright); applyTrackColors(); updateTrackedVisuals(); renderList(); });
-  $('t-track').addEventListener('click',()=>{ ST.layers.track=!ST.layers.track; $('t-track').classList.toggle('on',ST.layers.track); updateTrackedVisuals(); });
-  $('t-term').addEventListener('click',()=>{ ST.layers.term=!ST.layers.term; $('t-term').classList.toggle('on',ST.layers.term); updateTerminator(); });
+  $('olist').addEventListener('click',e=>{ const rm=e.target.closest('[data-rm]'); if(rm){ e.stopPropagation(); removeCustom(rm.dataset.rm); return; }
+    const pin=e.target.closest('[data-pin]'); if(pin){ e.stopPropagation(); toggleTracked(pin.dataset.pin); return; }
+    const r=e.target.closest('.orow'); if(r&&r.dataset.id){ selectObject(r.dataset.id); mobileShowSel(); } });
+  $('add-btn').onclick=handleAdd;
+  $('add-tle').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey&&$('add-tle').value.indexOf('\n')<0){ e.preventDefault(); handleAdd(); } });
+  document.querySelectorAll('#side-tabs button').forEach(b=>b.addEventListener('click',()=>switchSideTab(b.dataset.tab)));
+  [['t-gnss','gnss'],['t-geo','geo'],['t-wx','wx']].forEach(pair=>{ const tid=pair[0],key=pair[1];
+    $(tid).addEventListener('click',()=>{ ST.layers[key]=!ST.layers[key]; $(tid).classList.toggle('on',ST.layers[key]);
+      if(ST.layers[key]&&!ST.extraLoaded[key])loadExtraGroup(key);
+      else { applyTrackColors(); updateTrackedVisuals(); renderList(); }
+      savePrefs(); }); });
+  $('share').onclick=shareLink;
+  $('t-visnow').addEventListener('click',()=>{ ST.layers.visnow=!ST.layers.visnow; $('t-visnow').classList.toggle('on',ST.layers.visnow); renderList(); savePrefs(); });
+  $('t-bright').addEventListener('click',()=>{ ST.layers.bright=!ST.layers.bright; $('t-bright').classList.toggle('on',ST.layers.bright); applyTrackColors(); updateTrackedVisuals(); renderList(); savePrefs(); });
+  $('t-track').addEventListener('click',()=>{ ST.layers.track=!ST.layers.track; $('t-track').classList.toggle('on',ST.layers.track); updateTrackedVisuals(); savePrefs(); });
+  $('t-term').addEventListener('click',()=>{ ST.layers.term=!ST.layers.term; $('t-term').classList.toggle('on',ST.layers.term); updateTerminator(); savePrefs(); });
   $('t-starlink').addEventListener('click',()=>{ ST.layers.starlink=!ST.layers.starlink; $('t-starlink').classList.toggle('on',ST.layers.starlink);
     if(ST.layers.starlink){ if(!ST.starlinkLoaded)loadStarlink(); else { if(G.starlink.obj)G.starlink.obj.visible=true; build2DStarlink(); } }
-    else { if(G.starlink.obj)G.starlink.obj.visible=false; if(M2.slLayer)M2.slLayer.clearLayers(); } renderList(); });
+    else { if(G.starlink.obj)G.starlink.obj.visible=false; if(M2.slLayer)M2.slLayer.clearLayers(); } renderList(); savePrefs(); });
   $('loc-set').onclick=doLocSearch;
   $('loc-input').addEventListener('keydown',e=>{ if(e.key==='Enter')doLocSearch(); });
   $('loc-gps').onclick=()=>{ if(!navigator.geolocation){ setStatus('warn','A böngésző nem támogatja a helymeghatározást.'); return; }
@@ -1247,7 +1450,9 @@ function bindUI(){ if(uiBound)return; uiBound=true;
 }
 async function doRefresh(auto){ if(ST.refreshLock)return; ST.refreshLock=true; const btn=$('refresh'); if(btn)btn.disabled=true; const sel=ST.selId;
   setStatus('warn', auto?'Automatikus frissítés…':'Adatok frissítése…');
-  try{ await loadAllData(); if(ST.starlinkLoaded){ ST.starlinkLoaded=false; if(ST.layers.starlink)await loadStarlink(); }
+  try{ await loadAllData(); applyCustomObjects();
+    if(ST.starlinkLoaded){ ST.starlinkLoaded=false; if(ST.layers.starlink)await loadStarlink(); }
+    for(const k in EXTRA){ const was=ST.extraLoaded[k]; ST.extraLoaded[k]=false; if(was&&ST.layers[k])await loadExtraGroup(k); }
     buildGlobeSatellites(); build2DSatellites();
     for(const id of [...ST.tracked]) if(!ST.objects.has(id)) ST.tracked.delete(id);
     if(G.orbits) for(const id of [...G.orbits.keys()]) removeTrackVisual(id);
@@ -1284,15 +1489,19 @@ async function boot(){
   $('fatal').style.display='none'; $('boot').style.display='flex'; setBoot('Motorok betöltése…');
   try{
     await ensureLibs();
-    setBoot('Vezérlők előkészítése…'); buildChips(); bindUI(); setObserverGd(); updateLocLabels();
+    setBoot('Vezérlők előkészítése…'); loadPrefs(); loadURLState(); buildChips(); bindUI(); applyLayerUI(); setObserverGd(); updateLocLabels();
     if(typeof THREE!=='undefined' && !G.ready){ try{ init3D(); }catch(err){ console.warn('3D init failed',err); ST.no3d=true; } }
     else if(typeof THREE==='undefined'){ ST.no3d=true; }
     if(ST.no3d){ $('v3d').disabled=true; setView('2d'); }
     if(!M2.ready) init2D();
     setBoot('Élő pályaadatok lekérése…'); await loadAllData();
+    applyCustomObjects();
     buildGlobeSatellites(); build2DSatellites();
-    const iss=findIssId()||ST.order[0]; if(iss)selectObject(iss);
+    if(ST._restoreTracked) for(const id of ST._restoreTracked) if(ST.objects.has(id))ST.tracked.add(id);
+    const selT=(ST._restoreSel&&ST.objects.has(ST._restoreSel))?ST._restoreSel:(findIssId()||ST.order[0]); if(selT)selectObject(selT);
     startClock(); if(!tickHandle)tickHandle=setInterval(tick,1000); tick(); if(!ST.no3d && !G._anim){ G._anim=true; animate(); }
+    if(ST.layers.starlink && !ST.starlinkLoaded)loadStarlink();
+    for(const k in EXTRA) if(ST.layers[k]&&!ST.extraLoaded[k])loadExtraGroup(k);
     setStatus('ok','Forrás: '+ST.src+' · '+ST.objects.size+' objektum'); setFreshness();
     $('src-link').href=ST.srcUrl; $('src-link').textContent=(ST.src||'forrás').split(' ')[0];
     if(ST.epochAgeDays!=null&&ST.epochAgeDays>10) setStatus('warn','Forrás: '+ST.src+' · a TLE elavult ('+ST.epochAgeDays.toFixed(0)+' nap) — érdemes frissíteni');
